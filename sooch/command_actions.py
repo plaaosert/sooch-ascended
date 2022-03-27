@@ -1,6 +1,9 @@
+import time
 from enum import Enum
 
 import nextcord as discord
+
+from player import Player
 
 
 class CommandScope(Enum):
@@ -9,46 +12,49 @@ class CommandScope(Enum):
     GlobalAdmin = 2
 
 
-async def invalid_cmd(embed, message, params, player_in_context, server_in_context):
+async def claim_cmd(interaction: discord.Interaction, embed: discord.Embed, params, contexts):
+    player_in_context: Player = contexts.player
+
+
+
+
+async def invalid_server_cmd(interaction: discord.Interaction, embed: discord.Embed, params, contexts):
     pass
 
 
-async def invalid_server_cmd(embed, message, params, player_in_context, server_in_context):
-    pass
-
-
-async def invalid_admin_cmd(embed, message, params, player_in_context, server_in_context):
-    pass
+async def admin_ping_cmd(interaction: discord.Interaction, embed: discord.Embed, params, contexts):
+    embed.add_field(name="Pong!", value="Hello. The time is {}.".format(time.time()))
+    await interaction.send(content="This is an ephemeral response.", ephemeral=True)
 
 
 command_dict = (
     # Always
-    {"s!claim": invalid_cmd, "s!stats": invalid_cmd},
+    {"s!claim": claim_cmd, "s!stats": invalid_cmd},
 
     # ServerAdmin
-    {"b.nothing": invalid_server_cmd},
+    {"s.nothing": invalid_server_cmd},
 
     # GlobalAdmin
-    {"b$ping": invalid_admin_cmd}
+    {"s$ping": admin_ping_cmd}
 )
 
 
 # Pass a custom command into the bot. Very similar but a slight convenience function.
 # probably not required... lol
 async def pass_custom_command(scope: CommandScope,
-                              cmd, message, embed, params, player_in_context, server_in_context, components):
+                              cmd, interaction, embed, params, contexts, components):
     await call_cmd_function(
-        scope, cmd, message, embed, params, player_in_context, server_in_context, components
+        scope, cmd, interaction, embed, params, contexts, components
     )
 
     return components
 
 
 async def call_cmd_function(scope: CommandScope,
-                            cmd, message, embed, params, player_in_context, server_in_context, components):
+                            cmd, interaction, embed, params, contexts, components):
     if cmd in command_dict[scope.value]:
         component = await command_dict[scope.value][cmd](
-            cmd, message, embed, params, player_in_context, server_in_context
+            interaction, embed, params, contexts
         )
 
         if isinstance(component, dict):
